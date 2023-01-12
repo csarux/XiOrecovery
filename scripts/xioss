@@ -1,0 +1,260 @@
+#! /usr/bin/perl	
+
+#
+# File: xioss
+# Purpose: Regenerate the patient structures using the information stored in the XiO 
+#		   patient directory.
+# Steps:
+# First: Create a nrrd file with the total dose distribution -CBCT included-, without
+#        RTPS recalculation.
+# Second: Create a nrrd file wtih the structures contained in a XiO directory.
+#         We must solve some plastimatch weakness identifying and naming the structures.
+# Third: Calculate the DVH.
+# Author: César Rodríguez
+# 
+
+use strict;
+use warnings;
+
+#use XiOMunging;
+
+use Data::Dumper;
+use Cwd;
+use Getopt::Long;
+
+my $scriptname = "xioss";
+
+#
+# Get command line options
+#
+
+my $patientfolder;                     # XiO directory name and usually patient ID.
+my $plan = "IMRT";                     # Plan name
+my $size = 5;                          # Default size to avoid memory problems as joining structure mask files
+my $type = "mha";                      # Default type file
+my $sslist = "ss-list.txt";            # Defaul structure set list file containing names and colours
+my $ssimg = "ss-img.nrrd";             # Default structure set image file
+my $help;                              # Shows information about the command line options
+ 
+sub correctss{
+    my ($patientfolder, $studyset, $size, $type, $ssimg, $sslist) = @_;
+
+    my $decimalinctslice;
+
+    my $cwd = getcwd;
+
+    my $dir =  "$patientfolder/anatomy/studyset/$studyset"; 
+    die "$dir doesn't exit" unless chdir($dir);
+
+    my @contournames;
+    my @contourfiles;
+
+    my $filename = "contournames";
+
+    print "Structures in $filename file:\n";
+
+    open FILE, $filename or die "Error opening $filename";
+    my $prevline = <FILE>; 
+    while(<FILE>){
+	if(/^(\d{1,2}),1\.000000,0,\d{1,2},[1-2][0,9]\d{2}[0,1]\d[0-3]\d\.[0-2]\d{5},\d$/){
+	    print "$1 => $prevline";
+	    chomp $prevline;
+	    $prevline =~ s/\//_/g;
+	    push @contournames, $prevline;
+	}
+	else{
+	    $prevline = $_;
+	}
+    }
+    close FILE;
+
+    $filename = "index.dat";
+    open FILE, $filename or die "Error opening $filename";
+    while(<FILE>){
+	if(/^(T\.-?\d{0,3}\.?(\d?)\.)CT/){
+	    my $contourfile = $1 . "WC";
+	    $decimalinctslice = 1 if $2;
+	    push @contourfiles, $contourfile;
+	}
+    }
+
+    close FILE;
+
+    @contourfiles = reverse @contourfiles;
+
+    print "Contour files to process:\n @contourfiles\n";
+
+    my %xiostrsbyimg;
+    print "Structures in:\n";
+    foreach my $contourfile (@contourfiles){
+	print "$contourfile: ";
+	open FILE, $contourfile or die "Error opening $contourfile";
+	$prevline = <FILE>;
+	my $currstr = 0;
+	my @structures;
+	while(<FILE>){
+	    if(/^( {0,4}-?[0-9]{1,3}\.[0-9]{1}, {0,4}-?[0-9]{1,3}\.[0-9]{1}),?( {0,4}-?[0-9]{1,3}\.[0-9]{1}, {0,4}-?[0-9]{1,3}\.[0-9]{1})?,?( {0,4}-?[0-9]{1,3}\.[0-9]{1}, {0,4}-?[0-9]{1,3}\.[0-9]{1})?,?( {0,4}-?[0-9]{1,3}\.[0-9]{1}, {0,4}-?[0-9]{1,3}\.[0-9]{1})?,?( {0,4}-?[0-9]{1,3}\.[0-9]{1}, {0,4}-?[0-9]{1,3}\.[0-9]{1})?$/ && $prevline =~ /^\d{1,3}$/){
+		if($currstr != $prevline){
+		    print "$contournames[$prevline-1] ";
+		    push @structures, $contournames[$prevline-1];
+		    $currstr = $prevline;
+		}
+	    }
+	    $prevline = $_;
+	}
+	close FILE;
+	$xiostrsbyimg{$contourfile} = [@structures];
+	print "\n";
+    }
+
+    my %prefixfilenames;
+    my %plaststrsbyimg;
+    my $ctindex = "";
+    my $strimgfile;
+    
+    my $plastimatchcommand = "plastimatch convert --input . --output-prefix ./ss";
+    print $plastimatchcommand . "\n";
+    my $ctindexre = $decimalinctslice ? qr/^\[(-?\d{1,3}\.\d{6}) (\d{1,2}) \d{1,5}\]/ : qr/^\[(-?\d{1,3})\.\d{6} (\d{1,2}) \d{1,5}\]/;
+    open (PLASTOUTPUT, $plastimatchcommand . " |");
+    while(<PLASTOUTPUT>){
+	print $_;
+	if(/^(\d{1,2}) (\d{1,2}) (.*) (\[\d{1,3} \d{1,3} \d{1,3}\]).*,\.\.\.\]/){
+	    $prefixfilenames{$2} = scalar "$3";
+	}
+	elsif(/$ctindexre/){
+	    my $strs = $2;
+	    if($ctindex ne $1){  
+		$ctindex = $1;
+		my $localctindex = $decimalinctslice ? sprintf "%.1f", $ctindex : $ctindex;
+		$localctindex =~ s/^(-?)0*/$1/;
+		$strimgfile = "T." . $localctindex . ".WC";
+		print "\nT." . $localctindex . ".WC: $strs";
+		$plaststrsbyimg{$strimgfile} = [];
+		push @{$plaststrsbyimg{$strimgfile}}, $strs;
+	    }
+	    else {
+		print " $strs" unless $plaststrsbyimg{$strimgfile}[-1] == $strs;
+		push @{$plaststrsbyimg{$strimgfile}}, $2 unless $plaststrsbyimg{$strimgfile}[-1] == $strs;
+	    }
+	}
+    }
+    close PLASTOUTPUT;
+    
+#    print Dumper \%xiostrsbyimg;
+#    print Dumper \%plaststrsbyimg;
+
+    my %rels;
+
+    print "\nGiving meaningful names:\n";
+    map {
+	for my $i (0 .. $#{$plaststrsbyimg{$_}}){
+	    unless ($rels{$plaststrsbyimg{$_}[$i]}){
+		$rels{$plaststrsbyimg{$_}[$i]} = $xiostrsbyimg{$_}[$i];
+		print "$prefixfilenames{$plaststrsbyimg{$_}[$i]} <=> $xiostrsbyimg{$_}[$i]\n";
+		`mv \"ss/$prefixfilenames{$plaststrsbyimg{$_}[$i]}.mha\" \"ss/$xiostrsbyimg{$_}[$i].mha\"`
+	    }
+# Checking match consistency
+	    else{
+		die "Consistency lack in structure match between XiO contour file and plastimatch prefix output" unless $rels{$plaststrsbyimg{$_}[$i]} eq $xiostrsbyimg{$_}[$i];
+	    }
+	}
+    } keys %plaststrsbyimg;
+
+    my $chunksize = $size;
+
+    die "$dir/ss doesn't exit. Specify an existing folder" unless opendir(DIR, "ss");
+
+    my @files 
+	= grep { 
+	    /^[^\.]/              # Does not begin with a period
+		&& -f "ss/$_"     # and is a file
+		&& /$type$/       # and is this type
+    } readdir(DIR);
+
+    closedir(DIR);
+    chdir "ss";
+
+    die "Error: more than 32 structures" if @files > 32;
+
+    open FILE, ">$sslist" or die "Error opening file for structure name list output";
+    for my $i (0 .. $#files){
+	if($files[$i] =~ /(.*)\.mha$/){
+	    print FILE "$i|255 0 0|$1\n";
+	}
+    }
+    close FILE;
+
+    @files = map {qq|"$_"|} @files;
+
+    my @chunks;
+    push @chunks, [ splice @files, 0, $chunksize ];
+    push @chunks, [ splice @files, 0, ($chunksize - 1) ] while @files;
+
+    my $indchunk = 0;
+    foreach my $chunk (@chunks){
+	my @weights;
+	for(my $i=$indchunk; $i < $indchunk + @{$chunk}; ++$i){
+	    push @weights, 2**$i;
+	}
+
+	if($indchunk){
+	    $plastimatchcommand = qq/plastimatch add --output $ssimg --weight "1 @weights" $ssimg @{$chunk}\n/;
+	    print "Adding @{$chunk} to $ssimg file\n";
+#	print $plastimatchcommand;
+	    `$plastimatchcommand`;
+	} else {
+	    $plastimatchcommand = qq/plastimatch add --output $ssimg --weight "@weights" @{$chunk}\n/;
+	    print "Creating $ssimg file joining @{$chunk} structure mask files\n";
+#	print $plastimatchcommand;
+	    `$plastimatchcommand`;
+	}
+
+	$indchunk += @{$chunk};
+    }
+
+    print "Trying to convert $ssimg file to uint32 type\n";
+    `plastimatch convert --input $ssimg --output-img $ssimg --output-type uint32`;
+    
+    die "$cwd doesn't exist" unless chdir($cwd);
+
+}
+
+
+GetOptions("input=s" => \$patientfolder, "plan=s" => \$plan, "size=i" => \$size, "type=s" => \$type, "ss-list=s" => \$sslist, "output-ss-img=s" => \$ssimg, "help" => \$help);
+
+my $USAGE =<<USAGE;
+
+     Calculate the dose volume histogram from a XiO directory.
+
+     Usage:
+
+         $scriptname [options] [--help]
+
+         options:
+
+             --input: XiO directory name and usually patient ID.
+             --plan: Plan name. Default IMRT
+             --size: Structure group size to avoid memory problems as joining structure mask files, default 5.
+             --type: Format of the structure mask files, defualt mha.
+             --ss-list: Structure set list file cotaining names and colours, default ss-list.txt.
+             --output-ss-img: Structure set image file, default ss-img.nrrd
+
+USAGE
+
+die $USAGE if ($help);
+
+die "At least --input option is required. Type $scriptname --help for more options.\n" unless $patientfolder;
+
+
+my $cwd = getcwd;
+
+#
+# Correct identification of structures as exported by plastimatch from XiO files
+#
+
+my $studyset = "CT1";
+main::correctss $patientfolder, $studyset, $size, $type, $ssimg, $sslist;
+
+die "$cwd doesn exist\n" unless chdir $cwd;
+print "Finished!\n";
+
