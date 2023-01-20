@@ -47,7 +47,8 @@ sub deltaext{
 
     open(FH, '>', $output) or die $!;
     print "Writing delta to $output file\n";
-    print FH "$patientfolder, $studyset,  $deltacoords[0],  $deltacoords[1]";
+    print FH "PatientID,CT,X,Y\n";
+    print FH "$patientfolder,$studyset,$deltacoords[0],$deltacoords[1]\n";
     close FH;
         
 }
