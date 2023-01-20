@@ -1,0 +1,91 @@
+#!/usr/bin/perl	
+
+use strict;
+use warnings;
+
+use Data::Dumper;
+use Cwd;
+use Getopt::Long;
+
+# ^-?\d+\.\d{6},-?\d+\.\d{6}$
+
+my $scriptname = "deltact";
+
+#
+# Get command line options
+#
+
+my $patientfolder;                     # XiO directory name and usually patient ID.
+my $studyset = "CT1";                  # The name of the XIO directory containing the ct studyset
+my $output = "deltaframes";            # Name of file with the delta information
+my $help;                              # Shows information about the command line options
+
+sub deltaext{
+    my ($patientfolder, $studyset, $output) = @_;
+
+    my $cwd = getcwd;
+
+    my $dir =  "$patientfolder/anatomy/studyset/"; 
+    die "$dir doesn't exit" unless chdir($dir);
+
+    my $filename = "$studyset.info";
+
+	open FILE, $filename or die "Error opening $filename";
+    print "Reading $filename file\n";
+    my $deltaline = "";
+    my @deltacoords = [];
+	while(<FILE>){
+	    if(/^-?\d+\.\d{6},-?\d+\.\d{6}$/){
+	        $deltaline = $_;
+            print "Reference frame delta x[mm], y[mm]: $deltaline";
+	    }
+        @deltacoords = split (',', $deltaline);
+    }
+	close FILE;
+
+    die "$cwd doesn't exist" unless chdir($cwd);
+
+    print "Nombre del archivo de salida $output\n";
+
+    open(FH, '>', $output) or die $!;
+    print "Writing delta to $output file\n";
+    print FH "$patientfolder, $studyset,  $deltacoords[0],  $deltacoords[1]";
+    close FH;
+        
+}
+
+GetOptions("input=s" => \$patientfolder, "studyset=s" => \$studyset, "output=s" => \$output, "help" => \$help);
+
+my $USAGE =<<USAGE;
+
+     Try to extract the delta between the reference frame of the CT studyset and the frame of the RT plan
+     reading the CT.info file of the specified studyset inside the XiO patient directory
+
+     Usage:
+
+         $scriptname [options] [--help]
+
+         options:
+
+             --input: XiO directory name and usually patient ID.
+             --studyset: Studyset name. Default CT1
+             --output: File to output the delta between reference frames. Default deltaframes
+             --help: Shows this help page and exits
+
+USAGE
+
+die $USAGE if ($help);
+
+die "At least --input option is required. Type $scriptname --help for more options.\n" unless $patientfolder;
+
+
+my $cwd = getcwd;
+
+#
+# Extract the delta origin from the XiO CT.info file
+#
+
+main::deltaext $patientfolder, $studyset, $output;
+
+die "$cwd doesn't exist\n" unless chdir $cwd;
+print "Finished!\n";
