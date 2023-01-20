@@ -45,8 +45,6 @@ sub deltaext{
 
     die "$cwd doesn't exist" unless chdir($cwd);
 
-    print "Nombre del archivo de salida $output\n";
-
     open(FH, '>', $output) or die $!;
     print "Writing delta to $output file\n";
     print FH "$patientfolder, $studyset,  $deltacoords[0],  $deltacoords[1]";
