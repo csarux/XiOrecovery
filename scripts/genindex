@@ -8,7 +8,7 @@ my @readfiles
     = grep { 
         /^[^\.]/          # Does not begin with a period
         && -f "$_"        # and is a file
-	&& /CT$/       # and is this type
+	    && /CT$/          # and is this type
     } readdir(DIR);
 
 close DIR;
@@ -21,9 +21,9 @@ open FILE, ">index.dat";
 
 print FILE "$#files\n";
 foreach my $file (@files){
-    print FILE "$file\n";
-    if($file =~ /^T\.(-?\d{1,3}(\.\d{1,2})?)\.CT/){
-	printf FILE "%.2f\n", $1;
+        print FILE "$file\n";
+        if($file =~ /^T\.(-?\d{1,3}(\.\d{1,2})?)\.CT/){
+        printf FILE "%.2f\n", $1;
     }
 }
 

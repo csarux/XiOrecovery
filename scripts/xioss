@@ -4,19 +4,12 @@
 # File: xioss
 # Purpose: Regenerate the patient structures using the information stored in the XiO 
 #		   patient directory.
-# Steps:
-# First: Create a nrrd file with the total dose distribution -CBCT included-, without
-#        RTPS recalculation.
-# Second: Create a nrrd file wtih the structures contained in a XiO directory.
-#         We must solve some plastimatch weakness identifying and naming the structures.
-# Third: Calculate the DVH.
+#
 # Author: César Rodríguez
 # 
 
 use strict;
 use warnings;
-
-#use XiOMunging;
 
 use Data::Dumper;
 use Cwd;
@@ -147,17 +140,17 @@ sub correctss{
 
     print "\nGiving meaningful names:\n";
     map {
-	for my $i (0 .. $#{$plaststrsbyimg{$_}}){
-	    unless ($rels{$plaststrsbyimg{$_}[$i]}){
-		$rels{$plaststrsbyimg{$_}[$i]} = $xiostrsbyimg{$_}[$i];
-		print "$prefixfilenames{$plaststrsbyimg{$_}[$i]} <=> $xiostrsbyimg{$_}[$i]\n";
-		`mv \"ss/$prefixfilenames{$plaststrsbyimg{$_}[$i]}.mha\" \"ss/$xiostrsbyimg{$_}[$i].mha\"`
-	    }
+		for my $i (0 .. $#{$plaststrsbyimg{$_}}){
+			unless ($rels{$plaststrsbyimg{$_}[$i]}){
+				$rels{$plaststrsbyimg{$_}[$i]} = $xiostrsbyimg{$_}[$i];
+				print "$prefixfilenames{$plaststrsbyimg{$_}[$i]} <=> $xiostrsbyimg{$_}[$i]\n";
+				`mv \"ss/$prefixfilenames{$plaststrsbyimg{$_}[$i]}.mha\" \"ss/$xiostrsbyimg{$_}[$i].mha\"`
+	    	}
 # Checking match consistency
-	    else{
-		die "Consistency lack in structure match between XiO contour file and plastimatch prefix output" unless $rels{$plaststrsbyimg{$_}[$i]} eq $xiostrsbyimg{$_}[$i];
-	    }
-	}
+			else{
+				die "Consistency lack in structure match between XiO contour file and plastimatch prefix output" unless $rels{$plaststrsbyimg{$_}[$i]} eq $xiostrsbyimg{$_}[$i];
+			}
+		}
     } keys %plaststrsbyimg;
 
     my $chunksize = $size;
@@ -166,7 +159,7 @@ sub correctss{
 
     my @files 
 	= grep { 
-	    /^[^\.]/              # Does not begin with a period
+	    /^[^\.]/          # Does not begin with a period
 		&& -f "ss/$_"     # and is a file
 		&& /$type$/       # and is this type
     } readdir(DIR);
