@@ -14,6 +14,7 @@ from glob import glob
 from pathlib import Path
 from datetime import date, datetime
 import csv
+import numpy as np
 
 def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', prefct = 'image', deltaframes='deltaframes'):
     """
@@ -50,16 +51,18 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
     
     with open('./patient/' + deltaframes, mode = 'r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
+        print('./patient/' + deltaframes)
    
-    for row in csv_reader:
-        filePatientID, CT, X, Y = row['PatientID'], row['CT'], row['X'], row['Y']
+        for row in csv_reader:
+            filePatientID, CT, X, Y = row['PatientID'], row['CT'], row['X'], row['Y']
    
     if(filePatientID == PatientID & CT == studyset):
         ctfiles = glob(dcmdir + '/' + prefct + '*')
         
         for ctfile in ctfiles:
             ctdf = dcm.read_file(ctfile)
-            ctdf.ImagePositionPatient = ImagePositionPatient
+            delta = np.array([X, Y, 0])
+            ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) + delta).tolist()
             ctdf.save_as(ctfile)        
         
     return
