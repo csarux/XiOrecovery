@@ -49,14 +49,13 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
 
     """
     
-    print('./patient/' + deltaframes)
     with open('./patient/' + deltaframes, mode = 'r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
    
         for row in csv_reader:
             filePatientID, CT, X, Y = row['PatientID'], row['CT'], row['X'], row['Y']
    
-    if(filePatientID == PatientID & CT == studyset):
+    if(filePatientID == patientID and CT == studyset):
         ctfiles = glob(dcmdir + '/' + prefct + '*')
         
         for ctfile in ctfiles:
