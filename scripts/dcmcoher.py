@@ -50,8 +50,8 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
     """
     
     with open('./patient/' + deltaframes, mode = 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
         print('./patient/' + deltaframes)
+        csv_reader = csv.DictReader(csv_file)
    
         for row in csv_reader:
             filePatientID, CT, X, Y = row['PatientID'], row['CT'], row['X'], row['Y']
