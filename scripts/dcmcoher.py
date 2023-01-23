@@ -15,13 +15,21 @@ from pathlib import Path
 from datetime import date, datetime
 import csv
 
-def correctImagePositionPatientInCTImages(dcmdir='xiodcm', prefct = 'image', deltaframes='deltaframes', patientID, studyset):
+def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', prefct = 'image', deltaframes='deltaframes'):
     """
     A function to correct the ImagePositionPatient in the CT images using the 
     plastimatch produced dose file as a reference
     ...
     Attributes
     ----------
+    patientID : str
+        The identification of the patient for which the delta has been extracted. The delta is 
+        specific of a patientID and stusyset pair. This parameter is required. 
+
+    studyset : str
+        The identification of the studyset for which the delta has been extracted. The delta is 
+        specific of a patientID and stusyset pair. This parameter is required. 
+        
     dcmdir : str
         The name of the directory output-dicom of the plastimatch convert command. 
         Default xiodcm
@@ -34,14 +42,6 @@ def correctImagePositionPatientInCTImages(dcmdir='xiodcm', prefct = 'image', del
         The name of the file containing the delta between the reference frames of the CT studyset
         and the structuset. The delta has been produced by deltact perl script. Default deltaframes.
 
-    patientID : str
-        The identification of the patient for which the delta has been extracted. The delta is 
-        specific of a patientID and stusyset pair. This parameter is required. 
-
-    studyset : str
-        The identification of the studyset for which the delta has been extracted. The delta is 
-        specific of a patientID and stusyset pair. This parameter is required. 
-        
     Returns
     -------
     None 
