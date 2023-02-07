@@ -60,8 +60,10 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
         
         for ctfile in ctfiles:
             ctdf = dcm.read_file(ctfile)
-            delta = np.array([X, Y, 0], np.float64)
-            ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) + delta).tolist()
+            #delta = np.array([X, Y, 0], np.float64)
+            #ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
+            delta = np.array([X, Y, ctdf.ImagePositionPatient[2]], np.float64)
+            ctdf.ImagePositionPatient = delta.tolist()
             ctdf.save_as(ctfile)        
         
     return
