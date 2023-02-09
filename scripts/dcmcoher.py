@@ -60,10 +60,11 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
         
         for ctfile in ctfiles:
             ctdf = dcm.read_file(ctfile)
-            #delta = np.array([X, Y, 0], np.float64)
-            #ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
-            delta = np.array([X, Y, ctdf.ImagePositionPatient[2]], np.float64)
-            ctdf.ImagePositionPatient = delta.tolist()
+            delta = np.array([X, Y, 0], np.float64)
+            ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
+            ctdf.SeriesNumber = '1'
+#            delta = np.array([X, Y, ctdf.ImagePositionPatient[2]], np.float64)
+#            ctdf.ImagePositionPatient = delta.tolist()
             ctdf.save_as(ctfile)        
         
     return
@@ -141,6 +142,7 @@ def correctRTPlan(dcmdir='xiodcm', prefdose='dose', prefct = 'image', prefss = '
     
     plandf.StudyInstanceUID = generate_uid()
     plandf.SeriesInstanceUID = generate_uid()
+    plandf.SeriesNumber = '1'
     
     for drf in plandf.DoseReferenceSequence:
         drf.DoseReferenceUID = generate_uid()
