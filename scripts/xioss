@@ -214,7 +214,7 @@ sub correctss{
 }
 
 
-GetOptions("input=s" => \$patientfolder, "plan=s" => \$plan, "studyset=s" => \$studyser, "size=i" => \$size, "type=s" => \$type, "ss-list=s" => \$sslist, "output-ss-img=s" => \$ssimg, "help" => \$help);
+GetOptions("input=s" => \$patientfolder, "plan=s" => \$plan, "studyset=s" => \$studyset, "size=i" => \$size, "type=s" => \$type, "ss-list=s" => \$sslist, "output-ss-img=s" => \$ssimg, "help" => \$help);
 
 my $USAGE =<<USAGE;
 
