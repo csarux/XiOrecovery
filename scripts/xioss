@@ -23,6 +23,7 @@ my $scriptname = "xioss";
 
 my $patientfolder;                     # XiO directory name and usually patient ID.
 my $plan = "IMRT";                     # Plan name
+my $studyset = "CT1";				   # Studyset directory name
 my $size = 5;                          # Default size to avoid memory problems as joining structure mask files
 my $type = "mha";                      # Default type file
 my $sslist = "ss-list.txt";            # Defaul structure set list file containing names and colours
@@ -213,20 +214,20 @@ sub correctss{
 }
 
 
-GetOptions("input=s" => \$patientfolder, "plan=s" => \$plan, "size=i" => \$size, "type=s" => \$type, "ss-list=s" => \$sslist, "output-ss-img=s" => \$ssimg, "help" => \$help);
+GetOptions("input=s" => \$patientfolder, "plan=s" => \$plan, "studyset=s" => \$studyser, "size=i" => \$size, "type=s" => \$type, "ss-list=s" => \$sslist, "output-ss-img=s" => \$ssimg, "help" => \$help);
 
 my $USAGE =<<USAGE;
 
-     Calculate the dose volume histogram from a XiO directory.
+     Regenerate RT structures as independent mask files using information stored in a XiO patient directory.
 
      Usage:
 
          $scriptname [options] [--help]
 
          options:
-
              --input: XiO directory name and usually patient ID.
              --plan: Plan name. Default IMRT
+			 --studyset: Studyset directory. Default CT1
              --size: Structure group size to avoid memory problems as joining structure mask files, default 5.
              --type: Format of the structure mask files, defualt mha.
              --ss-list: Structure set list file cotaining names and colours, default ss-list.txt.
@@ -245,7 +246,6 @@ my $cwd = getcwd;
 # Correct identification of structures as exported by plastimatch from XiO files
 #
 
-my $studyset = "CT1";
 main::correctss $patientfolder, $studyset, $size, $type, $ssimg, $sslist;
 
 die "$cwd doesn exist\n" unless chdir $cwd;
