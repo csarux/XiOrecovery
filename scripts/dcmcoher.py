@@ -151,3 +151,42 @@ def correctRTPlan(dcmdir='xiodcm', prefdose='dose', prefct = 'image', prefss = '
     plandf.save_as(dcmdir + '/' + planfile)
     
     return plandf
+
+def coherDDMStudy(dcmdir='./', prefct = 'CT.', prefss = 'RS.', prefplan='RP.', prefdose='RD.'):
+    """
+    A function to referred the CT images and the strcture set to the same study as the DICOM-RTPlan and 
+    the DICOM-RT dose file
+    ...
+    Attributes
+    ----------
+    dcmdir : str
+        The name of the directory containing the DICOM study. 
+        Default '.' (the local directory) 
+        
+    prefct : str
+        The prefix of the DICOM CT image files produced by the DICOM application. Default 'CT.'
+        
+    prefss : str
+        The prefix of the DICOM-RT structure set file produced by the DICOM application. Default 'RS.'
+        the plastimatch convert command. Default rtss
+        
+    prefdose : str
+        The prefix of the DICOM-RT dose files produced by the DICOM application. Default 'RD.'
+        
+    prefdose : str
+        
+    Returns
+    -------
+    None 
+
+    """
+    
+    ctfiles = glob(dcmdir + '/' + prefct + '*')
+    
+    for ctfile in ctfiles:
+        ctdf = dcm.read_file(ctfile)
+        
+    
+   
+    return plandf
+    
