@@ -174,6 +174,7 @@ def coherDDMStudy(dcmdir='./', prefct = 'CT.', prefss = 'RS.', prefplan='RP.', p
         The prefix of the DICOM-RT dose files produced by the DICOM application. Default 'RD.'
         
     prefdose : str
+        The prefix of the DICOM-RT dose files produced by the DICOM application. Default 'RD.'
         
     Returns
     -------
