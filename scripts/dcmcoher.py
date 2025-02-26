@@ -16,7 +16,7 @@ from datetime import date, datetime
 import csv
 import numpy as np
 
-def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', prefct = 'image', deltaframes='deltaframes'):
+def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', prefct = 'image', deltaframes='deltaframes', prono_correction=False):
     """
     A function to correct the ImagePositionPatient in the CT images using the 
     plastimatch produced dose file as a reference
@@ -60,8 +60,13 @@ def correctImagePositionPatientInCTImages(patientID, studyset, dcmdir='xiodcm', 
         
         for ctfile in ctfiles:
             ctdf = dcm.read_file(ctfile)
-            delta = np.array([X, Y, 0], np.float64)
-            ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
+            if prono_correction:
+                delta = np.array([X, Y, 0], np.float64) + np.array([ctdf.PixelSpacing[1] * ctdf.Columns, ctdf.PixelSpacing[0] * ctdf.Rows, 0], np.float64) 
+                ctdf.ImageOrientationPatient = [1, 0, 0, 0, 1, 0] 
+                ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
+            else:
+                delta = np.array([X, Y, 0], np.float64)
+                ctdf.ImagePositionPatient = (np.array(ctdf.ImagePositionPatient) - delta).tolist()
             ctdf.SeriesNumber = '1'
 #            delta = np.array([X, Y, ctdf.ImagePositionPatient[2]], np.float64)
 #            ctdf.ImagePositionPatient = delta.tolist()
